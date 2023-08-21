@@ -1,10 +1,11 @@
-# importando bibliotecas
+# Importando bibliotecas
 import os
 import numpy as np
 import random
 from pygame.locals import *
 import pygame.display
 
+# Definindo cores
 WHITE=(255,255,255)
 RED=(255,0,0)
 GREEN=(0,255,0)
@@ -54,7 +55,7 @@ class Particle:
         position_1 = self.position #estabele a posição atual
         position_1 += dt*self.velocity #adiciona nela o quanto andou no período estabelecido e com a velocidade determinada
         #position_2 = self.acceleration*0.5*(dt**2.0) #estabelece o quanto andou com a aceleração
-        self.posicao = position_1 #+ position_2 #soma o movimento causado pela aceleração no proporcionado apenas com a velocidade
+        self.position = position_1 #+ position_2 #soma o movimento causado pela aceleração no proporcionado apenas com a velocidade
         
     def update_velocity(self,dt):
         
@@ -123,10 +124,10 @@ class Particle:
         self.position[0] = value
     @property
     def y(self):
-        return self.posicao[1]
+        return self.position[1]
     @y.setter
     def y(self, value):
-        self.posicao[1] = value
+        self.position[1] = value
     @property
     def vx(self):
         return self.velocity[0]
@@ -144,11 +145,18 @@ class Particle:
         
         """Confere se há overlap entre as partículas.
         """
-
-        return np.hypot(*(self.position - other.position)) < self.radius+ other.position
+        #*descompacta coordenadas
+        dist_centers = np.hypot(*(self.position - other.position))
+        if dist_centers < self.radius + other.radius:
+            return True
+        
+        else:
+            return False
+        
 
     def draw(self, screen):
-        """Add this Particle's Circle patch to the Matplotlib Axes ax."""
+        
+        """Desenha as partículas na tela."""
 
         pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
 
@@ -156,7 +164,7 @@ class Particle:
 #    def advance(self, dt):
 #        """Advance the Particle's position forward in time by dt."""
 #
-#        self.posicao += self.velocidade * dt
+#        self.position += self.velocidade * dt
 #
 #        # Make the Particles bounce off the walls
 #        if self.x - self.raio < 0:

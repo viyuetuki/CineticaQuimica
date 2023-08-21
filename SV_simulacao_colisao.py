@@ -4,30 +4,28 @@ class Event(object):
     
     def __init__(self,ct,t,p1_index,p2_index=None,wall=None):
 
-        '''
-        Colisões, que podem ser tanto entre partículas ou com as paredes
+        """Colisões, que podem ser tanto entre partículas ou com as paredes.
         
         Args:
-            ct       - collision type ("w" is wall collision, anything else is
-            binary particle)
-            t        - time of collision
-            p1_index - location parameter for the first particle
-            p2_index - location parameter for the second particle
-            (optional)
-            wall - name of wall involved in collision
-        '''
+            ct: tipo da colisão ("w" é uma colisão com a parede, qualquer outra coisa é entre duas partículas)
+            t: tempo da colisão
+            p1_index: parâmetro de localização de uma primeira partícula
+            p2_index: parâmetro de localização de uma segunda partícula
+            (opcional)
+            wall: nome da parede envolvida na colisão
+        """
         
-        # Event attributes
+        # Atributos do evento
         self.wc_log = False # is it wall collision? (otherwise binary particle col)
         self.t = t
         self.p1_index = p1_index
         self.p2_index = p2_index
         self.wall = wall   
         
-        # Set event attributes based on the collision type
-        if (ct=="w"):
+        #Configura os atributos do evento de acordo com o tipo da colisão
+        if ct == "w":
             self.wc_log = True
         else:
-            # Warn if second particle index was not passed
-            if (p2_index == None):
+            # Adverte caso o index da segunda partícula não foi passado
+            if p2_index == None:
                 raise RuntimeWarning("Warning: Event: second particle index undefined")
