@@ -9,6 +9,7 @@ from SV_simulacao_particula import Particle
 from SV_simulacao_colisao import Event
 import matplotlib.pyplot as plt
 import json
+from lmfit import Model
 
 #Definindo cores
 WHITE=(255,255,255)
@@ -22,13 +23,13 @@ ORANGE = (255, 165, 0)
 #Possibilitando argumentos 'command line'
 parser = argparse.ArgumentParser(description='An Event Driven Molecular Dynamics (EDMD) Simulator - Sah-Vi Simulation', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 #número de partículas
-parser.add_argument('-n', action="store", dest="npart", default=20, type=int, help='number of each type of particle to simulate')
+parser.add_argument('-n', action="store", dest="npart", default=100, type=int, help='number of each type of particle to simulate')
 #passo-tempo
 parser.add_argument('--dt', action="store", dest="dt", type=float, default=10.0, help='max time-step size between graphical updates - higher is faster')
 #largura da caixa
-parser.add_argument('-x', action="store", dest="xmax", type=int, default=300.0, help='simulation box width [px]')
+parser.add_argument('-x', action="store", dest="xmax", type=int, default=500.0, help='simulation box width [px]')
 #altura da caixa
-parser.add_argument('-y', action="store", dest="ymax", type=int, default=300.0, help='simulation box height [px]')
+parser.add_argument('-y', action="store", dest="ymax", type=int, default=500.0, help='simulation box height [px]')
 #tipo da partícula
 parser.add_argument('-ptype', action="store", dest="ptype", type=str, default='A', help='type of the particle being created')
 options = parser.parse_args()
@@ -421,33 +422,22 @@ def simulate(options, particles, time):
     return particles, time, velocities_dt   
 
 
-#plot velocity histogram
-def plot_v_histogram(ax, freq, bins, hist_x_limit = 1, hist_y_limit = 1):
-    
-    ax.set_title('v')
-    ax.stairs(freq, bins, fill = True)
-    ax.yaxis.set_ticks([])
-    ax.set_xlim(0, hist_x_limit)
-    ax.set_ylim(0, hist_y_limit)
-    
-    
-#correct numbering for filenames
-def correct_counter(number_int):
+def function(x, C, t):
 
-    if number_int < 10:
-        return str('000000' + str(number_int))
-    elif 10 <= number_int < 100:
-        return str('00000' + str(number_int))
-    elif 100 <= number_int < 1000:
-        return str('0000' + str(number_int))
-    elif 1000 <= number_int < 10000:
-        return str('000' + str(number_int))
-    elif 10000 <= number_int < 100000:
-        return str('00' + str(number_int))
-    elif 100000 <= number_int < 1000000:
-        return str('0' + str(number_int))
-    elif 1000000 <= number_int < 10000000:
-        return str(str(number_int))
+    return C * np.exp(-x*t)
+    
+
+def derivada_xy(x_vals, y_vals):
+    avg_x_vals = []
+    deriv_vals = []
+    for i in range(len(x_vals) - 1):
+        deriv = ( y_vals[i + 1] - y_vals[i] ) / ( x_vals[i + 1] - x_vals[i] )
+        avg_x = ( x_vals[i + 1] + x_vals[i] ) / 2
+
+        avg_x_vals.append(avg_x)
+        deriv_vals.append(deriv)
+
+    return avg_x_vals, deriv_vals    
 
                 
 def main(options):
@@ -607,10 +597,24 @@ def main(options):
     plt.plot(time_pass, particles_C, color="b") # (certo!!)
     plt.show() # (certo!!)
 
+    modelo_exponentialA = Model(function, prefix="exponentialA_")
+
+    params_exponentialA = modelo_exponentialA.make_params(C=particles_A[0], t=100)
+
+    #params_exponentialA["exponentialA_amplitude"].set(value=80, min=70, max=100)
+    #params_exponentialA["exponentialA_decay"].set(value=5, min=0, max=200)
+
+    resultado_fit = modelo_exponentialA.fit(particles_A, params_exponentialA, x=time_pass)
+    print(resultado_fit.fit_report())
+
+    resultado_fit.plot()
+    plt.show()
+
+
     pygame.quit()
 
-    print(particles_A)
-    print(particles_C)
+    #print(particles_A)
+    #print(particles_C)
     counter = 0
     #for veldt in velocities2_dt_total:
      #   plt.hist(veldt, bins=10, label=f"{counter}")
