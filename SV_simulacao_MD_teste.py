@@ -23,7 +23,8 @@ ORANGE = (255, 165, 0)
 #Possibilitando argumentos 'command line'
 parser = argparse.ArgumentParser(description='An Event Driven Molecular Dynamics (EDMD) Simulator - Sah-Vi Simulation', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 #número de partículas
-parser.add_argument('-n', action="store", dest="npart", default=100, type=int, help='number of each type of particle to simulate')
+parser.add_argument('-nA', action="store", dest="npartA", default=100, type=int, help='number of particle type A to simulate')
+parser.add_argument('-nB', action="store", dest="npartB", default=100, type=int, help='number of particle type B to simulate')
 #passo-tempo
 parser.add_argument('--dt', action="store", dest="dt", type=float, default=10.0, help='max time-step size between graphical updates - higher is faster')
 #largura da caixa
@@ -46,9 +47,24 @@ def escrever_txt(lista):
 def carregar_txt():
     with open('simulacao_con_vel.txt', 'r', encoding='utf-8') as f:
         return f.readlines()
+    
+    
+def overlap_all(list_particles, xmax, ymax, r, color, ptype):
+    
+    x = random.uniform(r, xmax - r)
+    y = random.uniform(r, ymax - r)
+    validation = "ok!"
+    particle = (Particle(x, y , r, color, ptype))
+
+    for particle_on_screen in list_particles:
+        if particle_on_screen.overlaps(particle):
+            validation = "overlaped"
+            break   
+    
+    return particle, validation
 
 
-def initParticles(n,r1, r2,xmax, ymax, color1, color2, ptype1, ptype2):
+def initParticles(nA, nB,r1, r2,xmax, ymax, color1, color2, ptype1, ptype2):
     
     """Cria n partículas com raio r e cor color, do tipo ptype, em uma caixa/tela com dimensões (xmax, ymax), de forma que garanta que elas sejam criadas em posições aleatórias dentro dessas dimensões.
     
@@ -68,30 +84,43 @@ def initParticles(n,r1, r2,xmax, ymax, color1, color2, ptype1, ptype2):
     #x = random.randint(r, xmax - r)
     #y = random.randint(r, ymax - r)
     #overlap_init = True
-    for np in range(n):
+    for npA in range(nA):
         #while overlap_init == True:
-        x1 = random.uniform(r1, xmax - r1)
-        y1 = random.uniform(r1, ymax - r1)
-        particle1 = (Particle(x1, y1 , r1, color1, ptype1))
-        for particle_on_screen in particles:
-            if particle_on_screen.overlaps(particle1): #== True:
-                break
+        #x1 = random.uniform(r1, xmax - r1)
+        #y1 = random.uniform(r1, ymax - r1)
+        particle1, validation1 = overlap_all(particles, xmax, ymax, r1, color1, ptype1)
+        while validation1 == "overlaped":
+            particle1, validation1 = overlap_all(particles, xmax, ymax, r1, color1, ptype1)
+        
+        particles.append(particle1)
+        
+        #particle1 = (Particle(x1, y1 , r1, color1, ptype1))
+        #for particle_on_screen in particles:
+        #    if particle_on_screen.overlaps(particle1): #== True:
+        #        break
 
             #elif particle_on_screen.overlaps(particle) == False:
                 #particles.append(particle)
                 #overlap_init == False
-        else: 
-            particles.append(particle1)
+        #else: 
+        #    particles.append(particle1)
             
-        x2 = random.uniform(r2, xmax - r2)
-        y2 = random.uniform(r2, ymax - r2)
-        particle2 = (Particle(x2, y2, r2, color2, ptype2))
-        for particle_on_screen in particles:
-            if particle_on_screen.overlaps(particle2): #== True:
-                break
+        #x2 = random.uniform(r2, xmax - r2)
+        #y2 = random.uniform(r2, ymax - r2)
+    for npB in range(nB):
 
-        else: 
-            particles.append(particle2)
+        particle2, validation2 = overlap_all(particles, xmax, ymax, r2, color2, ptype2)
+        while validation1 == "overlaped":
+            particle2, validation2 = overlap_all(particles, xmax, ymax, r2, color2, ptype2)
+        
+        particles.append(particle2)
+        #particle2 = (Particle(x2, y2, r2, color2, ptype2))
+        #for particle_on_screen in particles:
+        #    if particle_on_screen.overlaps(particle2): #== True:
+        #        break
+
+        #else: 
+        #    particles.append(particle2)
     
     return particles
 
@@ -104,7 +133,7 @@ def setup(options, r1, r2, color1, color2, ptype1, ptype2):
         particles: array com as partículas
     """
     
-    particles = initParticles(options.npart,r1, r2,options.xmax,options.ymax, color1, color2, ptype1, ptype2)
+    particles = initParticles(options.npartA,options.npartB,r1, r2,options.xmax,options.ymax, color1, color2, ptype1, ptype2)
     return particles
 
 
@@ -422,9 +451,41 @@ def simulate(options, particles, time):
     return particles, time, velocities_dt   
 
 
-def function(x, C, t):
+def first_order(x, C, k):
+    
+    y = C*np.exp(-k*x)
 
-    return C * np.exp(-x*t)
+    return y
+    
+
+
+def squared(x, C, k):
+    
+    #y=(-1/(k*x + (1/C)))
+    #y = x*t + 1/C
+    #y = C*np.exp(-k*x)
+    #y = C/(C*k*x + 1)
+    y = 1/(k*x+(1/C))
+
+    return y
+
+def squared_2(x, CA, CB, B, k):
+    
+    #y=(-1/(k*x + (1/C)))
+    #y = x*t + 1/C
+    #y = C*np.exp(-k*x)
+    #y = C/(C*k*x + 1)
+    #y = 1/(k*x+(1/C))
+    y = np.exp(k*(CA - CB)*x) * CA * (-CB) * B
+
+    return y
+    
+
+def fractional(x, C, k):
+    
+    y = ((x*k)/2 + C**(1/2))**(2)
+
+    return y
     
 
 def derivada_xy(x_vals, y_vals):
@@ -593,23 +654,100 @@ def main(options):
             
     #plt.plot(particles_A, particles_C)
     #plt.plot(counter_A, counter_C, 'o', label=f"{instant}")
+     
+    
     plt.plot(time_pass, particles_A, color="m") # (certo!!)
     plt.plot(time_pass, particles_C, color="b") # (certo!!)
-    plt.show() # (certo!!)
+    #plt.show() # (certo!!)
 
-    modelo_exponentialA = Model(function, prefix="exponentialA_")
+    modelo_fractionalA = Model(fractional, prefix="fractionalA_")
+    print(f'parameter names: {modelo_fractionalA.param_names}')
+    print(f'independent variables: {modelo_fractionalA.independent_vars}')
+    params_fractionalA = modelo_fractionalA.make_params()
+    
+    modelo_squaredA = Model(squared, prefix="squaredA_")
+    print(f'parameter names: {modelo_squaredA.param_names}')
+    print(f'independent variables: {modelo_squaredA.independent_vars}')
+    params_squaredA = modelo_squaredA.make_params()
+        
+    #modelo_squared2A = Model(squared_2, prefix="squared2A_")
+    #print(f'parameter names: {modelo_squared2A.param_names}')
+    #print(f'independent variables: {modelo_squared2A.independent_vars}')
+    #params_squared2A = modelo_squared2A.make_params()
+    
+    modelo_firstorderA = Model(first_order, prefix="firstorderA_")
+    print(f'parameter names: {modelo_firstorderA.param_names}')
+    print(f'independent variables: {modelo_firstorderA.independent_vars}')
+    params_firstorderA = modelo_firstorderA.make_params()
 
-    params_exponentialA = modelo_exponentialA.make_params(C=particles_A[0], t=100)
+    params_fractionalA["fractionalA_C"].set(value=particles_A[0]+1, min=particles_A[0]-10, max=201)
+    params_fractionalA["fractionalA_k"].set(value=-0.05, min=-1, max=5)
+    
+    params_squaredA["squaredA_C"].set(value=100, min=-100, max=201)
+    params_squaredA["squaredA_k"].set(value=-10, min=-50, max=50)
+    
+    #params_squared2A["squared2A_CA"].set(value=particles_A[0]+1, min=particles_A[0]-1, max=100)
+    #params_squared2A["squared2A_CB"].set(value=particles_B[0]+1, min=particles_B[0]-1, max=250)
+    #params_squared2A["squared2A_B"].set(value=8, min=-100, max=100)
+    #params_squared2A["squared2A_k"].set(value=-0.05, min=-50, max=50)
+    
+    params_firstorderA["firstorderA_C"].set(value=particles_A[0]+1, min=particles_A[0]-1, max=201)
+    params_firstorderA["firstorderA_k"].set(value=-0.05, min=-1, max=5)
+    
+    #params_exponentialA["exponentialA_C"].set(value=particles_A[0]+1, min=particles_A[0]-1, max=particles_A[0]+5)
+    #params_exponentialA["exponentialA_k"].set(value=-0.05, min=-1, max=5)
 
-    #params_exponentialA["exponentialA_amplitude"].set(value=80, min=70, max=100)
-    #params_exponentialA["exponentialA_decay"].set(value=5, min=0, max=200)
+    resultado_fit_fractionalA = modelo_fractionalA.fit(particles_A, params_fractionalA, x=time_pass)
+    print(resultado_fit_fractionalA.fit_report())
+    
+    print()
+    
+    resultado_fit_squaredA = modelo_squaredA.fit(particles_A, params_squaredA, x=time_pass)
+    print(resultado_fit_squaredA.fit_report())
+    
+    print()
+    
+    #resultado_fit_squared2A = modelo_squared2A.fit(particles_A, params_squared2A, x=time_pass)
+    #print(resultado_fit_squared2A.fit_report())
+    
+    print()
+    
+    resultado_fit_firstorderA = modelo_firstorderA.fit(particles_A, params_firstorderA, x=time_pass)
+    print(resultado_fit_firstorderA.fit_report())
+    
+    resultado_fit_fractionalA.plot()
+    resultado_fit_squaredA.plot()
+    #resultado_fit_squared2A.plot()
+    resultado_fit_firstorderA.plot()
+    
+    figure, axis = plt.subplots(2, 2, squeeze=False)
+    
+    fractional_fit = []
+    squared_fit = []
+    squared2_fit = []
+    firstorder_fit = []
+    for x in time_pass:
+        fractional_fit.append(fractional(x, resultado_fit_fractionalA.best_values.get("fractionalA_C"), resultado_fit_fractionalA.best_values.get("fractionalA_k")))
+        squared_fit.append(squared(x, resultado_fit_squaredA.best_values.get("squaredA_C"), resultado_fit_squaredA.best_values.get("squaredA_k")))
+        #squared2_fit.append(squared_2(x, resultado_fit_squared2A.best_values.get("squared2A_CA"), resultado_fit_squared2A.best_values.get("squared2A_CB"), resultado_fit_squared2A.best_values.get("squared2A_B"), resultado_fit_squared2A.best_values.get("squared2A_k")))
+        firstorder_fit.append(first_order(x, resultado_fit_firstorderA.best_values.get("firstorderA_C"), resultado_fit_firstorderA.best_values.get("firstorderA_k")))
+    avg_x_vals_frac, deriv_vals_frac = derivada_xy(time_pass, fractional_fit)
+    axis[0,0].plot(avg_x_vals_frac, deriv_vals_frac)
+    axis[0,0].set_title("Derivada [A] - fit fractional")
+    avg_x_vals_squ, deriv_vals_squ = derivada_xy(time_pass, squared_fit)
+    axis[0,1].plot(avg_x_vals_squ, deriv_vals_squ)
+    axis[0,1].set_title("Derivada [A] - fit squared")
+    avg_x_vals_fo, deriv_vals_fo = derivada_xy(time_pass, firstorder_fit)
+    axis[1,0].plot(avg_x_vals_fo, deriv_vals_fo)
+    axis[1,0].set_title("Derivada [A] - fit first order")
+    #avg_x_vals_squ2, deriv_vals_squ2 = derivada_xy(time_pass, squared2_fit)
+    #axis[1,1].plot(avg_x_vals_squ2, deriv_vals_squ2)
+    #axis[1,1].set_title("Derivada [A] - fit squared 2")
+    plt.tight_layout()
+    
 
-    resultado_fit = modelo_exponentialA.fit(particles_A, params_exponentialA, x=time_pass)
-    print(resultado_fit.fit_report())
-
-    resultado_fit.plot()
     plt.show()
-
+    
 
     pygame.quit()
 

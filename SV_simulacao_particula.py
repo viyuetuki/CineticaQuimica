@@ -5,27 +5,23 @@ import random
 from pygame.locals import *
 import pygame.display
 
-# Definindo cores
-WHITE=(255,255,255)
-RED=(255,0,0)
-GREEN=(0,255,0)
-BLUE=(0,0,255)
-BLACK=(0,0,0)
-
 # Criando e definindo classe para a partícula
 class Particle:
+    
     """Uma classe estabelecendo uma partícula bidimensional."""
     
-    def __init__(self, x, y, r, color):
-        """Inicializa as propriedades da partícula, tais como: sua posição, velocidade, raio e estilo."""
+    def __init__(self, x, y, r, color, ptype):
+        
+        """Inicializa as propriedades da partícula, tais como: sua posição, velocidade, raio e cor."""
 
         self.position = np.array((x, y)) # Posição inicial da partícula em x e em y
-        self.velocity = np.array([random.random()*2.0-1.0, random.random()*2.0-1.0]) # Velocidades em x e em y aleatórias entre -1.0 e 1.0
+        self.velocity = np.array([random.uniform(-100, 100), random.uniform(-100,100)]) # Velocidades em x e em y aleatórias entre -1.0 e 1.0
         self.radius = r # Raio da partícula
         self.acceleration = np.array([0,0]) # Aceleração inicial da partícula igual a 0 em x e em y
         #self.acceleration_old = self.acceleration
         self.mass = 1 # Massa da partícula
         self.color = color # Estilo da partícula
+        self.type = ptype # tipo da partícula
             
     # Estabelecendo os Métodos para Particle        
     def updateProperties(self,dt):
@@ -34,7 +30,7 @@ class Particle:
         
         Obs: No momento, está sendo considerada aceleração constante.
         """
-        
+
         #self.update_acceleration(dt)
         self.update_position(dt)
         self.update_velocity(dt)
@@ -65,7 +61,7 @@ class Particle:
         v_1 = self.velocity #estabele a velocidade atual
         #a_sum = self.acceleration + self.acceleration #soma a aceleração
         #v_2 = a_sum*0.5*dt #termo da velocidade da aceleração
-        self.velocidade = v_1 #+ v_2 #soma dos termos para obter a velocidade final
+        self.velocity = v_1 #+ v_2 #soma dos termos para obter a velocidade final
         
     def reflect_side(self):
         
@@ -81,7 +77,7 @@ class Particle:
         """
         
         #Invert the y velocity component
-        self.velocidade[1] = - self.velocidade[1]
+        self.velocity[1] = - self.velocity[1]
 
     def apply_boundary_cond(self):
         
@@ -159,24 +155,3 @@ class Particle:
         """Desenha as partículas na tela."""
 
         pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
-
-
-#    def advance(self, dt):
-#        """Advance the Particle's position forward in time by dt."""
-#
-#        self.position += self.velocidade * dt
-#
-#        # Make the Particles bounce off the walls
-#        if self.x - self.raio < 0:
-#            self.x = self.raio
-#            self.vx = -self.vx
-#        if self.x + self.raio > 1:
-#            self.x = 1-self.raio
-#            self.vx = -self.vx
-#        if self.y - self.raio < 0:
-#            self.y = self.raio
-#            self.vy = -self.vy
-#        if self.y + self.raio > 1:
-#            self.y = 1-self.raio
-#            self.vy = -self.vy
-
